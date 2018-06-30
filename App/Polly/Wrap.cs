@@ -15,30 +15,30 @@ namespace App.Polly
                     .Retry(6);
 
             var circuitBreakerPolicy = Policy
-                     .Handle<Exception>()
-                     .CircuitBreaker(
-                         exceptionsAllowedBeforeBreaking: 4, // 连续4次异常
-                         durationOfBreak: TimeSpan.FromSeconds(1), // 断开1秒
-                         onBreak: (exception, breakDelay) => // 断路器被打开的时
-                        {
-                            Console.WriteLine($"durationOfBreak: {breakDelay.TotalMilliseconds } ms, exception: " + exception.Message);
-                        },
-                         onReset: () => Console.WriteLine("Closed the circuit again"), // 重新关闭断路器时
-                         onHalfOpen: () => Console.WriteLine("Half-open: Next call is a trial") // 在自动断路时间到时，从断开的状态复原
-                     );
+                    .Handle<Exception>()
+                    .CircuitBreaker(
+                        exceptionsAllowedBeforeBreaking: 4,             // 连续4次异常
+                        durationOfBreak: TimeSpan.FromSeconds(1),       // 断开1秒
+                        onBreak: (exception, breakDelay) =>             // 断路器打开时
+                            Console.WriteLine($"熔断: {breakDelay.TotalMilliseconds } ms, 异常: " + exception.Message),
+                        onReset: () =>                                  // 熔断器关闭时
+                            Console.WriteLine("熔断器关闭了"),
+                        onHalfOpen: () =>                               // 熔断时间结束时，从断开状态进入半开状态
+                            Console.WriteLine("熔断时间到，进入半开状态")
+                    );
 
-            var policy = Policy.Wrap(retryPolicy, circuitBreakerPolicy);
+            var wrap = Policy.Wrap(retryPolicy, circuitBreakerPolicy);
 
             try
             {
-                var result = policy.Execute(Test);
+                var result = wrap.Execute(Test);
                 Console.WriteLine($"result:{result}");
             }
             catch (Exception)
             { }
 
             Thread.Sleep(2000);
-            var result1 = policy.Execute(Test);
+            var result1 = wrap.Execute(Test);
             Console.WriteLine($"result1:{result1}");
         }
 
